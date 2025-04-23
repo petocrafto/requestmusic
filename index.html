@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Request Lagu</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <button class="admin-login-btn" id="adminLoginBtn">Admin Login</button>
+      <h1>Form Request Lagu</h1>
+      <p class="description">Kirimkan lagu request Anda beserta pesan yang ingin disampaikan. Lagu akan dijadwalkan untuk diputar dengan kuota 6 lagu per hari.</p>
+    </header>
+
+    <div class="admin-panel" id="adminPanel">
+      <h2 class="section-title">Admin Panel</h2>
+
+      <div class="stats-container">
+        <div class="stat-card">
+          <div class="stat-title">Total Request</div>
+          <div class="stat-value" id="totalRequests">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Lagu Hari Ini</div>
+          <div class="stat-value" id="todaySongsCount">0/6</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Lagu Besok</div>
+          <div class="stat-value" id="tomorrowSongsCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Dalam Antrian</div>
+          <div class="stat-value" id="queueSongsCount">0</div>
+        </div>
+      </div>
+
+      <div class="admin-actions">
+        <button class="btn btn-admin" id="exportDataBtn">Export Data</button>
+        <button class="btn btn-danger" id="resetDataBtn">Reset Semua Data</button>
+        <button class="btn btn-secondary" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <section class="form-section">
+        <h2 class="section-title">Kirim Request</h2>
+        <form id="songRequestForm">
+          <div class="form-group">
+            <label for="senderName">Nama Pengirim</label>
+            <input type="text" id="senderName" name="senderName" required>
+          </div>
+
+          <div class="form-group">
+            <label for="recipient">Untuk Siapa</label>
+            <input type="text" id="recipient" name="recipient" required>
+          </div>
+
+          <div class="form-group">
+            <label for="songTitle">Judul Lagu</label>
+            <div class="search-container">
+              <input type="text" id="songTitle" name="songTitle" required>
+              <button type="button" id="searchYoutube" class="btn btn-secondary">Cari</button>
+            </div>
+            <div class="search-results" id="youtubeResults"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="youtubeLink">Link YouTube</label>
+            <input type="url" id="youtubeLink" name="youtubeLink" required placeholder="https://www.youtube.com/watch?v=...">
+            <div id="selectedLinkInfo" class="selected-link-info">
+              <small>Link yang dipilih:</small>
+              <div id="selectedLinkText" class="selected-link-text"></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="message">Pesan</label>
+            <textarea id="message" name="message" placeholder="Tulis pesan yang ingin dititipkan..."></textarea>
+          </div>
+
+          <button type="submit" class="btn">Kirim Request</button>
+        </form>
+      </section>
+
+      <section class="schedule-section">
+        <h2 class="section-title">Jadwal Pemutaran</h2>
+
+        <div class="tabs">
+          <div class="tab active" data-tab="today">Hari Ini</div>
+          <div class="tab" data-tab="tomorrow">Besok</div>
+          <div class="tab" data-tab="queue">Antrian</div>
+          <div class="tab" data-tab="history">History</div>
+        </div>
+
+        <div class="tab-content active" id="today-tab">
+          <div class="schedule-day">
+            <h3 class="day-title">Hari Ini <span id="today-date"></span></h3>
+            <ul class="song-list" id="today-songs">
+              <li class="empty-schedule">Belum ada lagu yang dijadwalkan untuk hari ini</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tomorrow-tab">
+          <div class="schedule-day">
+            <h3 class="day-title">Besok <span id="tomorrow-date"></span></h3>
+            <ul class="song-list" id="tomorrow-songs">
+              <li class="empty-schedule">Belum ada lagu yang dijadwalkan untuk besok</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tab-content" id="queue-tab">
+          <div class="schedule-day">
+            <h3 class="day-title">Antrian Lagu</h3>
+            <ul class="song-list" id="queue-songs">
+              <li class="empty-schedule">Tidak ada lagu dalam antrian</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tab-content" id="history-tab">
+          <div class="schedule-day">
+            <h3 class="day-title">History Request</h3>
+            <ul class="song-list" id="history-songs">
+              <li class="empty-schedule">Belum ada history request</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div class="modal" id="loginModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Admin Login</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="adminUsername">Username</label>
+            <input type="text" id="adminUsername" required>
+          </div>
+          <div class="form-group">
+            <label for="adminPassword">Password</label>
+            <input type="password" id="adminPassword" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelLoginBtn">Batal</button>
+        <button class="btn btn-admin" id="confirmLoginBtn">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Confirmation Modal -->
+  <div class="modal" id="resetModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Konfirmasi Reset Data</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Apakah Anda yakin ingin mereset semua data? Tindakan ini tidak dapat dibatalkan.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelResetBtn">Batal</button>
+        <button class="btn btn-danger" id="confirmResetBtn">Reset Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDquemyutK42OvP905ArtExiGXgz8Zkt8s",
+      authDomain: "requestmusic-ab7e5.firebaseapp.com",
+      databaseURL: "https://requestmusic-ab7e5-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "requestmusic-ab7e5",
+      storageBucket: "requestmusic-ab7e5.appspot.com",
+      messagingSenderId: "587126885829",
+      appId: "1:587126885829:web:744b8b37d05830b27620fac",
+      measurementId: "G-8452QD3453"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
+  <!-- Script kamu -->
+  <script src="script.js"></script>
+</body>
+</html>

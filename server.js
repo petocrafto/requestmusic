@@ -25,16 +25,20 @@ const songRequestSchema = new mongoose.Schema({
 const SongRequest = mongoose.model('SongRequest', songRequestSchema);
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
+// Ensure environment variables are loaded
+if (!process.env.MONGODB_URI) {
+    console.error('MONGODB_URI is not defined in environment variables');
+    process.exit(1);
+}
+
+mongoose.connect(process.env.MONGODB_URI)
 .then(() => {
     console.log('Connected to MongoDB');
     console.log('MongoDB URI:', process.env.MONGODB_URI.replace(/:[^:]*@/, ':****@'));
 })
 .catch(err => {
     console.error('MongoDB connection error:', err);
+    console.error('Please check your MongoDB connection string and credentials');
     process.exit(1);
 });
 
@@ -88,13 +92,23 @@ app.get('/api/requests/queue', async (req, res) => {
 app.post('/api/requests', async (req, res) => {
     try {
         console.log('Received request:', req.body);
+        
+        // Validate required fields
+        const { senderName, songTitle, youtubeLink } = req.body;
+        if (!senderName || !songTitle || !youtubeLink) {
+            throw new Error('Missing required fields: senderName, songTitle, and youtubeLink are required');
+        }
+
         const request = new SongRequest(req.body);
         const savedRequest = await request.save();
-        console.log('Saved request:', savedRequest);
+        console.log('Successfully saved request:', savedRequest);
         res.status(201).json(savedRequest);
     } catch (error) {
         console.error('Error saving request:', error);
-        res.status(400).json({ error: error.message || 'Error saving request' });
+        res.status(400).json({
+            error: error.message || 'Error saving request',
+            details: error.toString()
+        });
     }
 });
 

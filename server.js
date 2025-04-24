@@ -25,9 +25,18 @@ const songRequestSchema = new mongoose.Schema({
 const SongRequest = mongoose.model('SongRequest', songRequestSchema);
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('MongoDB connection error:', err));
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => {
+    console.log('Connected to MongoDB');
+    console.log('MongoDB URI:', process.env.MONGODB_URI.replace(/:[^:]*@/, ':****@'));
+})
+.catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+});
 
 // API Routes
 // Get all requests
@@ -78,11 +87,14 @@ app.get('/api/requests/queue', async (req, res) => {
 // Create new request
 app.post('/api/requests', async (req, res) => {
     try {
+        console.log('Received request:', req.body);
         const request = new SongRequest(req.body);
-        await request.save();
-        res.status(201).json(request);
+        const savedRequest = await request.save();
+        console.log('Saved request:', savedRequest);
+        res.status(201).json(savedRequest);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Error saving request:', error);
+        res.status(400).json({ error: error.message || 'Error saving request' });
     }
 });
 

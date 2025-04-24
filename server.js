@@ -31,16 +31,22 @@ if (!process.env.MONGODB_URI) {
     process.exit(1);
 }
 
-mongoose.connect(process.env.MONGODB_URI)
-.then(() => {
-    console.log('Connected to MongoDB');
-    console.log('MongoDB URI:', process.env.MONGODB_URI.replace(/:[^:]*@/, ':****@'));
-})
-.catch(err => {
-    console.error('MongoDB connection error:', err);
-    console.error('Please check your MongoDB connection string and credentials');
-    process.exit(1);
-});
+// MongoDB connection with retry
+const connectWithRetry = async () => {
+    try {
+        await mongoose.connect(process.env.MONGODB_URI);
+        console.log('Connected to MongoDB');
+        console.log('MongoDB URI:', process.env.MONGODB_URI.replace(/:[^:]*@/, ':****@'));
+        console.log('MongoDB connection state:', mongoose.connection.readyState);
+    } catch (err) {
+        console.error('MongoDB connection error:', err);
+        console.error('Will retry connection in 5 seconds...');
+        setTimeout(connectWithRetry, 5000);
+    }
+};
+
+// Initial connection
+connectWithRetry();
 
 // API Routes
 // Get all requests
@@ -99,14 +105,23 @@ app.post('/api/requests', async (req, res) => {
             throw new Error('Missing required fields: senderName, songTitle, and youtubeLink are required');
         }
 
+        // Check MongoDB connection
+        if (mongoose.connection.readyState !== 1) {
+            throw new Error('Database connection is not ready');
+        }
+
         const request = new SongRequest(req.body);
+        console.log('Attempting to save request...');
         const savedRequest = await request.save();
         console.log('Successfully saved request:', savedRequest);
         res.status(201).json(savedRequest);
     } catch (error) {
         console.error('Error saving request:', error);
+        // Send more detailed error message
         res.status(400).json({
-            error: error.message || 'Error saving request',
+            error: 'Failed to save request',
+            message: error.message,
+            mongoState: mongoose.connection.readyState,
             details: error.toString()
         });
     }

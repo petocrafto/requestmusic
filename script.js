@@ -52,6 +52,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const youtubeLink = document.getElementById('youtubeLink').value;
         const message = document.getElementById('message').value;
         
+        // Validasi input
+        if (!senderName || !songTitle || !youtubeLink) {
+            alert('Nama Pengirim, Judul Lagu, dan Link YouTube harus diisi!');
+            return;
+        }
+
         const newRequest = {
             senderName,
             recipient,
@@ -62,6 +68,8 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         try {
+            console.log('Sending request:', newRequest);
+            
             // Kirim request ke server
             const response = await fetch('/api/requests', {
                 method: 'POST',
@@ -71,7 +79,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(newRequest)
             });
             
-            if (!response.ok) throw new Error('Failed to save request');
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || data.message || 'Failed to save request');
+            }
             
             // Reset form
             this.reset();
@@ -84,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
             await loadData();
         } catch (error) {
             console.error('Error:', error);
-            alert('Gagal mengirim request. Silakan coba lagi.');
+            alert(`Gagal mengirim request: ${error.message}. Silakan coba lagi.`);
         }
     });
     

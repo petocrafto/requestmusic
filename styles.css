@@ -260,6 +260,8 @@ textarea {
 
 .song-list {
     list-style: none;
+    max-height: 470px;
+    overflow-y: auto;
 }
 
 .song-item {

@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // BASE_URL agar bisa diakses semua scope
+    const BASE_URL = 'http://localhost:3000';
+    
     // Inisialisasi data
     let songRequests = [];
     let schedule = { today: [], tomorrow: [] };
@@ -68,31 +71,39 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         try {
-            console.log('Sending request:', newRequest);
-            
-            // Kirim request ke server
-            const response = await fetch('/api/requests', {
+            // Data yang mau disimpan diambil dari form input:
+            // - senderName: Nama pengirim (input id="senderName")
+            // - recipient: Untuk siapa (input id="recipient")
+            // - songTitle: Judul lagu (input id="songTitle")
+            // - youtubeLink: Link YouTube (input id="youtubeLink")
+            // - message: Pesan (textarea id="message")
+            // Semua data ini dikumpulkan dalam objek newRequest di atas.
+
+            // Kirim data newRequest ke server untuk disimpan di database
+            console.log('Data yang akan disimpan:', newRequest);
+
+            const response = await fetch(`${BASE_URL}/api/requests`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(newRequest)
             });
-            
+
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.error || data.message || 'Failed to save request');
             }
-            
-            // Reset form
+
+            // Reset form setelah berhasil submit
             this.reset();
             document.getElementById('selectedLinkInfo').style.display = 'none';
-            
-            // Show success message
+
+            // Tampilkan pesan sukses
             alert('Request lagu berhasil dikirim!');
-            
-            // Update display
+
+            // Refresh data tampilan
             await loadData();
         } catch (error) {
             console.error('Error:', error);
@@ -139,27 +150,35 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Reset data button
     document.getElementById('resetDataBtn').addEventListener('click', async function() {
-        if (confirm('Apakah Anda yakin ingin mereset semua data? Tindakan ini tidak dapat dibatalkan.')) {
-            try {
-                const response = await fetch('/api/requests', {
-                    method: 'DELETE'
-                });
-                
-                if (!response.ok) throw new Error('Failed to reset data');
-                
-                await loadData();
-                alert('Semua data telah direset!');
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Gagal mereset data. Silakan coba lagi.');
-            }
+        // Tampilkan modal konfirmasi reset
+        document.getElementById('resetModal').classList.add('active');
+    });
+
+    // Modal reset: tombol batal
+    document.getElementById('cancelResetBtn').addEventListener('click', function() {
+        document.getElementById('resetModal').classList.remove('active');
+    });
+
+    // Modal reset: tombol konfirmasi
+    document.getElementById('confirmResetBtn').addEventListener('click', async function() {
+        try {
+            const response = await fetch(`${BASE_URL}/api/requests`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to reset data');
+            document.getElementById('resetModal').classList.remove('active');
+            await loadData();
+            alert('Semua data telah direset!');
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Gagal mereset data. Silakan coba lagi.');
         }
     });
     
     // Export data button
     document.getElementById('exportDataBtn').addEventListener('click', async function() {
         try {
-            const response = await fetch('/api/requests');
+            const response = await fetch(`${BASE_URL}/api/requests`);
             const data = await response.json();
             
             const dataStr = JSON.stringify(data, null, 2);
@@ -185,10 +204,10 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadData() {
         try {
             const [todayResponse, tomorrowResponse, queueResponse, allResponse] = await Promise.all([
-                fetch('/api/requests/today'),
-                fetch('/api/requests/tomorrow'),
-                fetch('/api/requests/queue'),
-                fetch('/api/requests')
+                fetch(`${BASE_URL}/api/requests/today`),
+                fetch(`${BASE_URL}/api/requests/tomorrow`),
+                fetch(`${BASE_URL}/api/requests/queue`),
+                fetch(`${BASE_URL}/api/requests`)
             ]);
             
             if (!todayResponse.ok || !tomorrowResponse.ok || !queueResponse.ok || !allResponse.ok) {
@@ -210,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateAdminStats();
         } catch (error) {
             console.error('Error loading data:', error);
-            alert('Gagal memuat data. Silakan refresh halaman.');
+            alert('Gagal memuat data: ' + (error && error.message ? error.message : error));
         }
     }
     

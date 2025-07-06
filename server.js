@@ -32,7 +32,8 @@ const songRequestSchema = new mongoose.Schema({
     youtubeLink: String,
     message: String,
     timestamp: { type: Date, default: Date.now },
-    status: { type: String, default: 'queue' } // queue, today, tomorrow, history
+    status: { type: String, default: 'queue' }, // queue, today, tomorrow, history
+    targetDate: { type: Date, default: null } // tanggal target request (opsional)
 });
 
 const SongRequest = mongoose.model('SongRequest', songRequestSchema);
@@ -79,7 +80,7 @@ app.get('/api/requests/today', async (req, res) => {
         today.setHours(0, 0, 0, 0);
         const requests = await SongRequest.find({ 
             status: 'today',
-            timestamp: { $gte: today }
+            targetDate: today
         }).sort({ timestamp: 1 });
         res.json(requests);
     } catch (error) {
@@ -90,7 +91,15 @@ app.get('/api/requests/today', async (req, res) => {
 // Get tomorrow's songs
 app.get('/api/requests/tomorrow', async (req, res) => {
     try {
-        const requests = await SongRequest.find({ status: 'tomorrow' }).sort({ timestamp: 1 });
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        const requests = await SongRequest.find({ 
+            status: 'tomorrow',
+            targetDate: tomorrow
+        }).sort({ timestamp: 1 });
         res.json(requests);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -110,28 +119,65 @@ app.get('/api/requests/queue', async (req, res) => {
 // Create new request
 app.post('/api/requests', async (req, res) => {
     try {
-        console.log('Received request:', req.body);
-        
-        // Validate required fields
-        const { senderName, songTitle, youtubeLink } = req.body;
+        console.log('Received request body:', req.body);
+        const { senderName, recipient, songTitle, youtubeLink, message } = req.body;
         if (!senderName || !songTitle || !youtubeLink) {
-            throw new Error('Missing required fields: senderName, songTitle, and youtubeLink are required');
+            console.error('Validation failed: Missing required fields');
+            return res.status(400).json({
+                error: 'Missing required fields',
+                message: 'Nama Pengirim, Judul Lagu, dan Link YouTube harus diisi!'
+            });
         }
-
-        // Check MongoDB connection
         if (mongoose.connection.readyState !== 1) {
-            throw new Error('Database connection is not ready');
+            console.error('MongoDB not ready, state:', mongoose.connection.readyState);
+            return res.status(500).json({
+                error: 'Database connection is not ready',
+                mongoState: mongoose.connection.readyState
+            });
         }
-
-        const request = new SongRequest(req.body);
-        console.log('Attempting to save request...');
-        const savedRequest = await request.save();
+        // Hitung jumlah request dengan status 'today' untuk hari ini
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayCount = await SongRequest.countDocuments({
+            status: 'today',
+            targetDate: today
+        });
+        let statusToSet = 'today';
+        let targetDate = today;
+        if (todayCount >= 6) {
+            // Jika today sudah 6, cek tomorrow
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            const tomorrowCount = await SongRequest.countDocuments({
+                status: 'tomorrow',
+                targetDate: tomorrow
+            });
+            console.log('tomorrowCount', tomorrowCount);
+            if (tomorrowCount >= 6) {
+                statusToSet = 'queue';
+                targetDate = null;
+            } else {
+                statusToSet = 'tomorrow';
+                targetDate = tomorrow;
+            }
+        }
+        const newRequest = new SongRequest({
+            senderName,
+            recipient: recipient || '',
+            songTitle,
+            youtubeLink,
+            message: message || '',
+            status: statusToSet,
+            targetDate
+        });
+        console.log('Saving new request:', newRequest);
+        const savedRequest = await newRequest.save();
         console.log('Successfully saved request:', savedRequest);
         res.status(201).json(savedRequest);
     } catch (error) {
         console.error('Error saving request:', error);
-        // Send more detailed error message
-        res.status(400).json({
+        res.status(500).json({
             error: 'Failed to save request',
             message: error.message,
             mongoState: mongoose.connection.readyState,
@@ -161,6 +207,16 @@ app.delete('/api/requests/:id', async (req, res) => {
         res.status(204).send();
     } catch (error) {
         res.status(400).json({ error: error.message });
+    }
+});
+
+// Reset all requests
+app.delete('/api/requests', async (req, res) => {
+    try {
+        await SongRequest.deleteMany({});
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 

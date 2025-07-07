@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // BASE_URL agar bisa diakses semua scope
-    const BASE_URL = 'http://localhost:3000';
+    const BASE_URL = 'https://apirequestmusc.vercel.app';
     
     // Inisialisasi data
     let songRequests = [];

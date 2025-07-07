@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inisialisasi data
     let songRequests = [];
-    let schedule = { today: [], tomorrow: [] };
+    let schedule = { today: [], tomorrow: [] }
     let adminCredentials = {
         username: 'user1',
         password: '#111'
